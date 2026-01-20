@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: economy-service
+  namespace: football-manager
+  labels:
+    app: economy-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3005
+      targetPort: 3005
+      protocol: TCP
+      name: http
+  selector:
+    app: economy-service

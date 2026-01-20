@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: match-service-config
+  namespace: football-manager
+data:
+  PORT: "3004"
+  NODE_ENV: "production"
+  MONGO_URI: "mongodb://mongodb-service:27017"
+  MONGO_DATABASE: "football_manager"
+  RABBITMQ_URL: "amqp://rabbitmq-service:5672"
+  REDIS_URL: "redis://redis-service:6379"

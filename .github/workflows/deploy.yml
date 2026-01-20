@@ -1,0 +1,137 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [frontend, api-gateway, club-service, player-service, match-service, economy-service, youth-service, league-service, message-service, notification-service]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image for ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: production
+      url: https://football-manager.local
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl apply -f kubernetes/namespace.yaml
+          kubectl apply -f kubernetes/configmaps/
+          kubectl apply -f kubernetes/secrets/
+          kubectl apply -f kubernetes/pv-pvc.yaml
+          kubectl apply -f kubernetes/services/
+          kubectl apply -f kubernetes/deployments/
+          kubectl apply -f kubernetes/hpa/
+          kubectl apply -f kubernetes/ingress.yaml
+
+      - name: Verify deployment
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl rollout status deployment api-gateway -n football-manager --timeout=5m
+          kubectl rollout status deployment frontend -n football-manager --timeout=5m
+          kubectl get pods -n football-manager
+
+      - name: Run health checks
+        run: |
+          chmod +x deployment/health-check.sh
+          ./deployment/health-check.sh
+
+      - name: Notify on success
+        if: success()
+        run: echo "Deployment successful!"
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Rollback deployments
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl rollout undo deployment api-gateway -n football-manager
+          kubectl rollout undo deployment frontend -n football-manager
+          kubectl rollout undo deployment club-service -n football-manager
+          kubectl rollout undo deployment player-service -n football-manager
+          kubectl rollout undo deployment match-service -n football-manager
+          kubectl rollout undo deployment economy-service -n football-manager
+          kubectl rollout undo deployment youth-service -n football-manager
+          kubectl rollout undo deployment league-service -n football-manager
+          kubectl rollout undo deployment message-service -n football-manager
+          kubectl rollout undo deployment notification-service -n football-manager
