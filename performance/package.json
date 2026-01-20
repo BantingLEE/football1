@@ -1,0 +1,28 @@
+{
+  "name": "football-performance-tests",
+  "version": "1.0.0",
+  "description": "Performance and load testing suite for Football Manager application",
+  "main": "index.js",
+  "scripts": {
+    "test:all": "./scripts/run-load-tests.sh all",
+    "test:api": "./scripts/run-load-tests.sh api",
+    "test:match": "./scripts/run-load-tests.sh match",
+    "test:websocket": "./scripts/run-load-tests.sh websocket",
+    "test:login": "k6 run load-tests/scenarios/concurrent-login.js",
+    "test:throughput": "k6 run load-tests/scenarios/api-throughput.js",
+    "test:database": "k6 run load-tests/scenarios/database-performance.js",
+    "test:simultaneous": "k6 run load-tests/scenarios/simultaneous-matches.js",
+    "report": "k6 report reports/*.json"
+  },
+  "keywords": [
+    "performance",
+    "load-testing",
+    "k6",
+    "stress-testing"
+  ],
+  "author": "Football Manager Team",
+  "license": "MIT",
+  "devDependencies": {
+    "k6": "^0.50.0"
+  }
+}
