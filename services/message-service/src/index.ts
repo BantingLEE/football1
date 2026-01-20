@@ -7,6 +7,8 @@ import { MessageService } from './services/messageService';
 import { SocketHandlers } from './socket/handlers';
 import { MessageController } from './controllers/messageController';
 import { createMessageRoutes } from './routes/messages';
+import { authMiddleware } from './middleware/auth';
+import { rateLimiterMiddleware } from './middleware/rateLimiter';
 
 dotenv.config();
 
@@ -24,6 +26,9 @@ async function startServer() {
   });
 
   app.use(express.json());
+
+  io.use(authMiddleware);
+  io.use(rateLimiterMiddleware);
 
   const redisAdapter = new RedisAdapter();
   await redisAdapter.connect();

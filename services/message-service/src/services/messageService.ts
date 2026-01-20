@@ -3,11 +3,11 @@ import { Server as SocketIOServer } from 'socket.io';
 export class MessageService {
   constructor(private io: SocketIOServer) {}
 
-  broadcastToRoom(room: string, event: string, data: any): void {
+  broadcastToRoom(room: string, event: string, data: unknown): void {
     this.io.to(room).emit(event, data);
   }
 
-  sendToUser(userId: string, event: string, data: any): void {
+  sendToUser(userId: string, event: string, data: unknown): void {
     this.io.to(`user:${userId}`).emit(event, data);
   }
 
@@ -25,7 +25,7 @@ export class MessageService {
     }
   }
 
-  broadcastToAll(event: string, data: any): void {
+  broadcastToAll(event: string, data: unknown): void {
     this.io.emit(event, data);
   }
 }
