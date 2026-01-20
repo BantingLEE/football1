@@ -1,0 +1,20 @@
+{
+  "name": "football-manager",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "services/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "docker-compose up",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "docker-compose build",
+    "lint": "prettier --check \"**/*.{ts,tsx,json}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,json}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.1.0"
+  }
+}
