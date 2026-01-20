@@ -1,4 +1,5 @@
 import { Player, IPlayer } from '../models/Player'
+import { ClientSession } from 'mongoose'
 
 function randomBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -6,55 +7,113 @@ function randomBetween(min: number, max: number): number {
 
 export class PlayerService {
   async getAllPlayers(): Promise<IPlayer[]> {
-    const players = await Player.find().exec()
-    return players
+    try {
+      const players = await Player.find().exec()
+      return players
+    } catch (error) {
+      throw new Error(`Failed to fetch players: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async getPlayerById(id: string): Promise<IPlayer | null> {
-    const player = await Player.findById(id).exec()
-    return player
+    try {
+      if (!id) {
+        throw new Error('Player ID is required')
+      }
+      const player = await Player.findById(id).exec()
+      return player
+    } catch (error) {
+      throw new Error(`Failed to fetch player: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async getPlayersByClub(clubId: string): Promise<IPlayer[]> {
-    const players = await Player.find({ clubId }).exec()
-    return players
+    try {
+      if (!clubId) {
+        throw new Error('Club ID is required')
+      }
+      const players = await Player.find({ clubId }).exec()
+      return players
+    } catch (error) {
+      throw new Error(`Failed to fetch players: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async createPlayer(playerData: Partial<IPlayer>): Promise<IPlayer> {
-    const newPlayer = await Player.create({
-      ...playerData,
-      attributes: playerData.attributes || this.generateRandomAttributes(),
-      potential: playerData.potential || randomBetween(50, 99),
-      currentAbility: playerData.currentAbility || randomBetween(40, 85),
-      history: {
-        matchesPlayed: 0,
-        goals: 0,
-        assists: 0,
-        growthLog: []
+    try {
+      if (!playerData.name || !playerData.age || !playerData.position) {
+        throw new Error('Name, age, and position are required')
       }
-    })
 
-    return newPlayer
+      const newPlayer = await Player.create({
+        ...playerData,
+        attributes: playerData.attributes || this.generateRandomAttributes(),
+        potential: playerData.potential || randomBetween(50, 99),
+        currentAbility: playerData.currentAbility || randomBetween(40, 85),
+        history: {
+          matchesPlayed: 0,
+          goals: 0,
+          assists: 0,
+          growthLog: []
+        }
+      })
+
+      return newPlayer
+    } catch (error) {
+      throw new Error(`Failed to create player: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async updatePlayer(id: string, playerData: Partial<IPlayer>): Promise<IPlayer | null> {
-    const player = await Player.findByIdAndUpdate(id, playerData, { new: true }).exec()
-    return player
+    try {
+      if (!id) {
+        throw new Error('Player ID is required')
+      }
+      const player = await Player.findByIdAndUpdate(id, playerData, { new: true }).exec()
+      return player
+    } catch (error) {
+      throw new Error(`Failed to update player: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async deletePlayer(id: string): Promise<IPlayer | null> {
-    const player = await Player.findByIdAndDelete(id).exec()
-    return player
+    try {
+      if (!id) {
+        throw new Error('Player ID is required')
+      }
+      const player = await Player.findByIdAndDelete(id).exec()
+      return player
+    } catch (error) {
+      throw new Error(`Failed to delete player: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
-  async transferPlayer(playerId: string, fromClubId: string, toClubId: string): Promise<IPlayer | null> {
-    const player = await Player.findById(playerId).exec()
-    if (!player) return null
+  async transferPlayer(playerId: string, fromClubId: string, toClubId: string, session?: ClientSession): Promise<IPlayer | null> {
+    try {
+      if (!playerId || !fromClubId || !toClubId) {
+        throw new Error('Player ID, fromClubId, and toClubId are required')
+      }
 
-    player.clubId = toClubId as any
-    await player.save()
+      if (fromClubId === toClubId) {
+        throw new Error('Cannot transfer player to the same club')
+      }
 
-    return player
+      const player = await Player.findById(playerId).session(session || null).exec()
+      if (!player) {
+        throw new Error('Player not found')
+      }
+
+      if (player.clubId?.toString() !== fromClubId) {
+        throw new Error('Player does not belong to the specified fromClubId')
+      }
+
+      player.clubId = toClubId as any
+      await player.save({ session })
+
+      return player
+    } catch (error) {
+      throw new Error(`Failed to transfer player: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   calculatePlayerValue(player: IPlayer): number {
@@ -64,14 +123,32 @@ export class PlayerService {
   }
 
   async trainPlayer(playerId: string, trainingType: string): Promise<IPlayer | null> {
-    const player = await Player.findById(playerId).exec()
-    if (!player) return null
+    try {
+      if (!playerId) {
+        throw new Error('Player ID is required')
+      }
+      if (!trainingType) {
+        throw new Error('Training type is required')
+      }
 
-    const growthAmount = this.calculateGrowth(player, trainingType)
-    this.applyGrowth(player, growthAmount, trainingType)
+      const validTrainingTypes = ['technical', 'physical', 'tactical', 'goalkeeping']
+      if (!validTrainingTypes.includes(trainingType)) {
+        throw new Error(`Invalid training type. Must be one of: ${validTrainingTypes.join(', ')}`)
+      }
 
-    await player.save()
-    return player
+      const player = await Player.findById(playerId).exec()
+      if (!player) {
+        throw new Error('Player not found')
+      }
+
+      const growthAmount = this.calculateGrowth(player, trainingType)
+      this.applyGrowth(player, growthAmount, trainingType)
+
+      await player.save()
+      return player
+    } catch (error) {
+      throw new Error(`Failed to train player: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   private generateRandomAttributes() {
