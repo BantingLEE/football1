@@ -32,7 +32,7 @@ export interface MatchEvent {
   playerId?: string
   teamId: string
   description: string
-  details?: any
+  details?: Record<string, unknown>
 }
 
 export type MatchEventType =

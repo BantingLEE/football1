@@ -1,6 +1,7 @@
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 15)
 }
+// For development only. Use UUID or crypto in production.
 
 export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {
@@ -14,7 +15,7 @@ export function formatCurrency(amount: number, currency: string = '€'): string
   return `${currency}${amount.toLocaleString()}`
 }
 
-export function calculatePlayerValue(player: any): number {
+export function calculatePlayerValue(player: { age: number; potential: number; currentAbility: number }): number {
   const ageFactor = player.age < 24 ? 1.2 : player.age > 30 ? 0.6 : 1
   const potentialFactor = player.potential / 100
   return Math.round(player.currentAbility * 10000 * ageFactor * potentialFactor)
