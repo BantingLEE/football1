@@ -1,5 +1,7 @@
 import { Notification, INotification, NotificationType } from '../models/Notification'
+import { User } from '../models/User'
 import { sendEmail } from '../email/mailer'
+import { EmailTemplate } from '../email/templates'
 
 export class NotificationService {
   async createNotification(userId: string, type: NotificationType, title: string, message: string, data?: any): Promise<INotification> {
@@ -107,14 +109,31 @@ export class NotificationService {
         throw new Error('User ID is required')
       }
 
-      const notification = await Notification.findByIdAndDelete(notificationId).exec()
+      const notification = await Notification.findById(notificationId).exec()
+      if (!notification) {
+        return null
+      }
+
+      if (notification.userId !== userId) {
+        throw new Error('Unauthorized')
+      }
+
+      await Notification.findByIdAndDelete(notificationId).exec()
       return notification
     } catch (error) {
       throw new Error(`Failed to delete notification: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
-  async sendEmailNotification(userId: string, subject: string, body: string): Promise<{ success: boolean; messageId?: string }> {
+  private async getUserEmail(userId: string): Promise<{ email: string; name: string }> {
+    const user = await User.findOne({ userId }).exec()
+    if (!user) {
+      throw new Error('User not found')
+    }
+    return { email: user.email, name: user.name }
+  }
+
+  async sendEmailNotification(userId: string, subject: string, body: string, notificationType?: string): Promise<{ success: boolean; messageId?: string }> {
     try {
       if (!userId) {
         throw new Error('User ID is required')
@@ -126,7 +145,17 @@ export class NotificationService {
         throw new Error('Body is required')
       }
 
-      const result = await sendEmail(userId, subject, body)
+      const { email } = await this.getUserEmail(userId)
+
+      const html = EmailTemplate.render({
+        subject,
+        recipientName: 'User',
+        notificationType: notificationType || 'notification',
+        title: subject,
+        message: body
+      })
+
+      const result = await sendEmail(email, subject, html)
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to send email')
@@ -141,7 +170,7 @@ export class NotificationService {
     }
   }
 
-  async batchCreateNotifications(userIds: string[], type: NotificationType, title: string, message: string, data?: any): Promise<INotification[]> {
+  async batchCreateNotifications(userIds: string[], type: NotificationType, title: string, message: string, data?: any, sendEmails: boolean = false): Promise<INotification[]> {
     try {
       if (!userIds || userIds.length === 0) {
         throw new Error('User IDs array is required')
@@ -169,9 +198,41 @@ export class NotificationService {
       }))
 
       const createdNotifications = await Notification.insertMany(notifications)
+
+      if (sendEmails) {
+        this.sendBulkEmailNotifications(userIds, title, message, type).catch(err => {
+          console.error('Failed to send bulk email notifications:', err)
+        })
+      }
+
       return createdNotifications
     } catch (error) {
       throw new Error(`Failed to create batch notifications: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  private async sendBulkEmailNotifications(userIds: string[], title: string, message: string, notificationType: NotificationType): Promise<void> {
+    const { sendBulkEmails } = await import('../email/mailer')
+    const emails = []
+
+    for (const userId of userIds) {
+      try {
+        const { email, name } = await this.getUserEmail(userId)
+        const html = EmailTemplate.render({
+          subject: title,
+          recipientName: name,
+          notificationType,
+          title,
+          message
+        })
+        emails.push({ to: email, subject: title, body: html })
+      } catch (err) {
+        console.error(`Failed to get user email for ${userId}:`, err)
+      }
+    }
+
+    if (emails.length > 0) {
+      await sendBulkEmails(emails)
     }
   }
 

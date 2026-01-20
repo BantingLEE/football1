@@ -200,24 +200,40 @@ describe('NotificationService', () => {
         _id: '1',
         userId: 'user1'
       }
+      Notification.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockNotification)
+      } as any)
       Notification.findByIdAndDelete = jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockNotification)
       } as any)
 
       const result = await notificationService.deleteNotification('1', 'user1')
 
+      expect(Notification.findById).toHaveBeenCalledWith('1')
       expect(Notification.findByIdAndDelete).toHaveBeenCalledWith('1')
       expect(result).toEqual(mockNotification)
     })
 
     it('should return null when notification not found', async () => {
-      Notification.findByIdAndDelete = jest.fn().mockReturnValue({
+      Notification.findById = jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue(null)
       } as any)
 
       const result = await notificationService.deleteNotification('999', 'user1')
 
       expect(result).toBeNull()
+    })
+
+    it('should throw error when notification belongs to different user', async () => {
+      const mockNotification = {
+        _id: '1',
+        userId: 'user2'
+      }
+      Notification.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockNotification)
+      } as any)
+
+      await expect(notificationService.deleteNotification('1', 'user1')).rejects.toThrow('Unauthorized')
     })
 
     it('should throw error when notificationId is missing', async () => {
@@ -239,11 +255,16 @@ describe('NotificationService', () => {
 
   describe('sendEmailNotification', () => {
     it('should send email notification', async () => {
-      (sendEmail as jest.Mock).mockResolvedValue({ success: true, messageId: 'msg1' })
+      const { User } = await import('../src/models/User')
+      User.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ userId: 'user1', email: 'user1@example.com', name: 'User 1' })
+      } as any)
+      ;(sendEmail as jest.Mock).mockResolvedValue({ success: true, messageId: 'msg1' })
 
       const result = await notificationService.sendEmailNotification('user1', 'Test Subject', 'Test Body')
 
-      expect(sendEmail).toHaveBeenCalledWith('user1', 'Test Subject', 'Test Body')
+      expect(User.findOne).toHaveBeenCalledWith({ userId: 'user1' })
+      expect(sendEmail).toHaveBeenCalledWith('user1@example.com', 'Test Subject', expect.stringContaining('<!DOCTYPE html>'))
       expect(result).toEqual({ success: true, messageId: 'msg1' })
     })
 
@@ -260,7 +281,11 @@ describe('NotificationService', () => {
     })
 
     it('should throw error when email sending fails', async () => {
-      (sendEmail as jest.Mock).mockRejectedValue(new Error('Email error'))
+      const { User } = await import('../src/models/User')
+      User.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ userId: 'user1', email: 'user1@example.com', name: 'User 1' })
+      } as any)
+      ;(sendEmail as jest.Mock).mockRejectedValue(new Error('Email error'))
 
       await expect(notificationService.sendEmailNotification('user1', 'Subject', 'Body')).rejects.toThrow('Failed to send email notification')
     })
