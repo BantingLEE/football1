@@ -99,4 +99,13 @@ const MatchSchema: Schema = new Schema({
   timestamps: true
 })
 
+MatchSchema.index({ leagueId: 1 })
+MatchSchema.index({ date: -1 })
+MatchSchema.index({ status: 1 })
+MatchSchema.index({ 'homeTeam.clubId': 1 })
+MatchSchema.index({ 'awayTeam.clubId': 1 })
+MatchSchema.index({ leagueId: 1, date: -1 })
+MatchSchema.index({ leagueId: 1, status: 1 })
+MatchSchema.index({ 'homeTeam.clubId': 1, 'awayTeam.clubId': 1 })
+
 export const Match: Model<IMatch> = mongoose.model<IMatch>('Match', MatchSchema)

@@ -1,9 +1,10 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import mongoose from 'mongoose'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import matchRoutes from './routes/matches'
+import { connectToDatabase } from '@shared/database'
+import { runner } from '@shared/migrations'
 
 dotenv.config()
 
@@ -27,28 +28,32 @@ app.use((req: any, res: any, next: any) => {
 
 app.use('/matches', matchRoutes)
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/football_manager')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err))
+connectToDatabase()
+  .then(() => runner.up())
+  .then(() => {
+    io.on('connection', (socket) => {
+      console.log('Client connected to match service')
 
-io.on('connection', (socket) => {
-  console.log('Client connected to match service')
+      socket.on('subscribe:match', (matchId: string) => {
+        socket.join(`match:${matchId}`)
+        console.log(`Client subscribed to match ${matchId}`)
+      })
 
-  socket.on('subscribe:match', (matchId: string) => {
-    socket.join(`match:${matchId}`)
-    console.log(`Client subscribed to match ${matchId}`)
+      socket.on('unsubscribe:match', (matchId: string) => {
+        socket.leave(`match:${matchId}`)
+        console.log(`Client unsubscribed from match ${matchId}`)
+      })
+
+      socket.on('disconnect', () => {
+        console.log('Client disconnected from match service')
+      })
+    })
+
+    server.listen(PORT, () => {
+      console.log(`Match service running on port ${PORT}`)
+    })
   })
-
-  socket.on('unsubscribe:match', (matchId: string) => {
-    socket.leave(`match:${matchId}`)
-    console.log(`Client unsubscribed from match ${matchId}`)
+  .catch(err => {
+    console.error('Failed to start service:', err)
+    process.exit(1)
   })
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected from match service')
-  })
-})
-
-server.listen(PORT, () => {
-  console.log(`Match service running on port ${PORT}`)
-})

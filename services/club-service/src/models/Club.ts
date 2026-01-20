@@ -70,4 +70,9 @@ const ClubSchema: Schema = new Schema({
   timestamps: true
 })
 
+ClubSchema.index({ name: 1 }, { unique: true })
+ClubSchema.index({ city: 1 })
+ClubSchema.index({ foundedYear: 1 })
+ClubSchema.index({ createdAt: -1 })
+
 export const Club: Model<IClub> = mongoose.model<IClub>('Club', ClubSchema)

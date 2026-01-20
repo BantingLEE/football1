@@ -1,9 +1,10 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import mongoose from 'mongoose'
 import { createServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 import economyRoutes from './routes/economy'
+import { connectToDatabase } from '@shared/database'
+import { runner } from '@shared/migrations'
 
 dotenv.config()
 
@@ -20,36 +21,40 @@ const io = new SocketIOServer(httpServer, {
   }
 })
 
-io.on('connection', (socket) => {
-  console.log('Client connected to economy service')
-
-  socket.on('join-club', (clubId: string) => {
-    socket.join(`club-${clubId}`)
-    console.log(`Client joined club room: ${clubId}`)
-  })
-
-  socket.on('leave-club', (clubId: string) => {
-    socket.leave(`club-${clubId}`)
-    console.log(`Client left club room: ${clubId}`)
-  })
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected from economy service')
-  })
-})
-
 app.use('/economy', economyRoutes)
 
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'economy-service', timestamp: new Date().toISOString() })
 })
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/football_manager')
-  .then(() => console.log('Economy service connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err))
+connectToDatabase()
+  .then(() => runner.up())
+  .then(() => {
+    io.on('connection', (socket) => {
+      console.log('Client connected to economy service')
 
-httpServer.listen(PORT, () => {
-  console.log(`Economy service running on port ${PORT}`)
-})
+      socket.on('join-club', (clubId: string) => {
+        socket.join(`club-${clubId}`)
+        console.log(`Client joined club room: ${clubId}`)
+      })
+
+      socket.on('leave-club', (clubId: string) => {
+        socket.leave(`club-${clubId}`)
+        console.log(`Client left club room: ${clubId}`)
+      })
+
+      socket.on('disconnect', () => {
+        console.log('Client disconnected from economy service')
+      })
+    })
+
+    httpServer.listen(PORT, () => {
+      console.log(`Economy service running on port ${PORT}`)
+    })
+  })
+  .catch(err => {
+    console.error('Failed to start service:', err)
+    process.exit(1)
+  })
 
 export { io }

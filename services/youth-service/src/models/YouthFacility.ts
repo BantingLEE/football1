@@ -24,4 +24,8 @@ const YouthFacilitySchema: Schema = new Schema({
   timestamps: true
 })
 
+YouthFacilitySchema.index({ clubId: 1 }, { unique: true })
+YouthFacilitySchema.index({ level: 1 })
+YouthFacilitySchema.index({ lastGenerationDate: -1 })
+
 export const YouthFacility: Model<IYouthFacility> = mongoose.model<IYouthFacility>('YouthFacility', YouthFacilitySchema)

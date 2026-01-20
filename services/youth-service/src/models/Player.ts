@@ -84,6 +84,15 @@ const PlayerSchema: Schema = new Schema({
   timestamps: true
 })
 
+PlayerSchema.index({ clubId: 1 })
+PlayerSchema.index({ position: 1 })
+PlayerSchema.index({ age: 1 })
+PlayerSchema.index({ nationality: 1 })
+PlayerSchema.index({ clubId: 1, position: 1 })
+PlayerSchema.index({ contract: { expiresAt: 1 } })
+PlayerSchema.index({ 'injury.isInjured': 1 })
+PlayerSchema.index({ isYouth: 1 })
+
 PlayerSchema.pre('save', function(next) {
   const player = this as any
   if (player.position === 'GK' && !player.attributes.goalkeeping) {

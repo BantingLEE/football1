@@ -70,7 +70,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     if (mongoose.connection.readyState !== 1) {
       return false
     }
-    await mongoose.connection.db.admin().ping()
+    await mongoose.connection.db?.admin().ping()
     return true
   } catch (error) {
     console.error('Database health check failed:', error)
