@@ -1,0 +1,1604 @@
+openapi: 3.0.3
+info:
+  title: Football Manager API
+  description: |
+    REST API for Football Manager game - a comprehensive football management simulation.
+    
+    ## Overview
+    This API provides endpoints for managing clubs, players, matches, leagues, economy, youth development, and notifications in a football manager simulation game.
+    
+    ## Authentication
+    Most endpoints require authentication via JWT token in the Authorization header.
+    
+    ## Rate Limiting
+    API is rate limited to prevent abuse.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@footballmanager.com
+  
+servers:
+  - url: http://localhost:3001/api
+    description: Development server
+  - url: https://api.footballmanager.com/api
+    description: Production server
+
+tags:
+  - name: Clubs
+    description: Club management operations
+  - name: Players
+    description: Player management operations
+  - name: Matches
+    description: Match simulation and management
+  - name: Leagues
+    description: League and competition management
+  - name: Economy
+    description: Financial and transfer operations
+  - name: Youth
+    description: Youth academy and development
+  - name: Notifications
+    description: Notification management
+  - name: Messages
+    description: Real-time messaging
+
+paths:
+  /clubs:
+    get:
+      tags:
+        - Clubs
+      summary: Get all clubs
+      description: Retrieve a list of all clubs in the system
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Club'
+              example:
+                - _id: "507f1f77bcf86cd799439011"
+                  name: "Manchester United"
+                  country: "England"
+                  stadium: "Old Trafford"
+                  capacity: 74310
+                  finances:
+                    cash: 150000000
+                    budget: 50000000
+                  isActive: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Clubs
+      summary: Create a new club
+      description: Create a new football club with specified details
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClubCreate'
+            example:
+              name: "New FC"
+              country: "USA"
+              stadium: "Stadium Name"
+              capacity: 50000
+              finances:
+                cash: 100000000
+                budget: 30000000
+      responses:
+        '201':
+          description: Club created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /clubs/{id}:
+    get:
+      tags:
+        - Clubs
+      summary: Get club by ID
+      description: Retrieve detailed information about a specific club
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Clubs
+      summary: Update club
+      description: Update club information
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClubUpdate'
+      responses:
+        '200':
+          description: Club updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+        - Clubs
+      summary: Delete club
+      description: Delete a club from the system
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      responses:
+        '200':
+          description: Club deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /clubs/{id}/finances:
+    patch:
+      tags:
+        - Clubs
+      summary: Update club finances
+      description: Update financial information for a club
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClubFinancesUpdate'
+            example:
+              cash: 160000000
+              budget: 60000000
+      responses:
+        '200':
+          description: Finances updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /players:
+    get:
+      tags:
+        - Players
+      summary: Get all players
+      description: Retrieve a list of all players
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+              example:
+                - _id: "507f1f77bcf86cd799439012"
+                  name: "John Smith"
+                  age: 25
+                  position: "ST"
+                  currentAbility: 82
+                  potential: 88
+                  attributes:
+                    speed: 85
+                    shooting: 88
+                    passing: 75
+                    defending: 60
+                    physical: 80
+                    technical: 85
+                    mental: 82
+                  contract:
+                    salary: 150000
+                    expiresAt: "2025-12-31T00:00:00.000Z"
+                  clubId: "507f1f77bcf86cd799439011"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Players
+      summary: Create a new player
+      description: Create a new player with specified attributes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerCreate'
+            example:
+              name: "New Player"
+              age: 22
+              position: "MF"
+              clubId: "507f1f77bcf86cd799439011"
+              attributes:
+                speed: 75
+                shooting: 70
+                passing: 80
+                defending: 65
+                physical: 75
+                technical: 72
+                mental: 74
+      responses:
+        '201':
+          description: Player created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /players/{id}:
+    get:
+      tags:
+        - Players
+      summary: Get player by ID
+      description: Retrieve detailed information about a specific player
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Players
+      summary: Update player
+      description: Update player information
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerUpdate'
+      responses:
+        '200':
+          description: Player updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+        - Players
+      summary: Delete player
+      description: Delete a player from the system
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: Player deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /players/club/{clubId}:
+    get:
+      tags:
+        - Players
+      summary: Get players by club
+      description: Retrieve all players belonging to a specific club
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /players/{id}/transfer:
+    post:
+      tags:
+        - Players
+      summary: Transfer player
+      description: Transfer a player from one club to another
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerTransfer'
+            example:
+              fromClubId: "507f1f77bcf86cd799439011"
+              toClubId: "507f1f77bcf86cd799439013"
+      responses:
+        '200':
+          description: Player transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /players/{id}/train:
+    post:
+      tags:
+        - Players
+      summary: Train player
+      description: Train a player to improve their attributes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trainingType:
+                  type: string
+                  enum: [technical, physical, tactical, goalkeeping]
+                  description: Type of training to perform
+            example:
+              trainingType: "technical"
+      responses:
+        '200':
+          description: Player trained successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /matches:
+    get:
+      tags:
+        - Matches
+      summary: Get all matches
+      description: Retrieve a list of all matches
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Matches
+      summary: Create a new match
+      description: Create a new match between two clubs
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchCreate'
+            example:
+              leagueId: "507f1f77bcf86cd799439020"
+              homeTeam:
+                clubId: "507f1f77bcf86cd799439011"
+                score: 0
+              awayTeam:
+                clubId: "507f1f77bcf86cd799439013"
+                score: 0
+              date: "2025-01-20T15:00:00.000Z"
+              status: "scheduled"
+      responses:
+        '201':
+          description: Match created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /matches/{id}:
+    get:
+      tags:
+        - Matches
+      summary: Get match by ID
+      description: Retrieve detailed information about a specific match
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Matches
+      summary: Update match
+      description: Update match information
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchUpdate'
+      responses:
+        '200':
+          description: Match updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /matches/league/{leagueId}:
+    get:
+      tags:
+        - Matches
+      summary: Get matches by league
+      description: Retrieve all matches in a specific league
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /matches/{id}/start:
+    post:
+      tags:
+        - Matches
+      summary: Start match with real-time simulation
+      description: Start a match and simulate it in real-time with live updates
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchId'
+      responses:
+        '200':
+          description: Match started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /matches/{id}/simulate:
+    post:
+      tags:
+        - Matches
+      summary: Simulate match instantly
+      description: Simulate a match immediately without real-time updates
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchId'
+      responses:
+        '200':
+          description: Match simulated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues:
+    get:
+      tags:
+        - Leagues
+      summary: Get all leagues
+      description: Retrieve a list of all leagues
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/League'
+              example:
+                - _id: "507f1f77bcf86cd799439020"
+                  name: "Premier League"
+                  country: "England"
+                  season:
+                    start: "2025-08-01T00:00:00.000Z"
+                    end: "2026-05-31T00:00:00.000Z"
+                  isActive: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Leagues
+      summary: Create a new league
+      description: Create a new league with specified clubs and rules
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeagueCreate'
+            example:
+              name: "New League"
+              country: "Germany"
+              season:
+                start: "2025-08-01T00:00:00.000Z"
+                end: "2026-05-31T00:00:00.000Z"
+              clubs: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439013"]
+              rules:
+                promotionSlots: 2
+                relegationSlots: 2
+                points:
+                  win: 3
+                  draw: 1
+                  loss: 0
+      responses:
+        '201':
+          description: League created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues/{id}:
+    get:
+      tags:
+        - Leagues
+      summary: Get league by ID
+      description: Retrieve detailed information about a specific league
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Leagues
+      summary: Update league
+      description: Update league information
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeagueUpdate'
+      responses:
+        '200':
+          description: League updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+        - Leagues
+      summary: Delete league
+      description: Delete a league from the system
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: League deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues/{id}/standings:
+    get:
+      tags:
+        - Leagues
+      summary: Get league standings
+      description: Retrieve current standings for a league
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues/{id}/schedule:
+    get:
+      tags:
+        - Leagues
+      summary: Get league schedule
+      description: Retrieve schedule for a league
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: clubId
+          in: query
+          description: Filter schedule by club ID (optional)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Leagues
+      summary: Generate league schedule
+      description: Generate a round-robin schedule for the league
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Schedule generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues/{id}/promotion-relegation:
+    post:
+      tags:
+        - Leagues
+      summary: Process promotion and relegation
+      description: Determine promoted and relegated teams based on standings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Promotion/relegation processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  promoted:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        clubId:
+                          type: string
+                        position:
+                          type: integer
+                        points:
+                          type: integer
+                  relegated:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        clubId:
+                          type: string
+                        position:
+                          type: integer
+                        points:
+                          type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+
+  parameters:
+    ClubId:
+      name: id
+      in: path
+      required: true
+      description: Club ID
+      schema:
+        type: string
+      example: "507f1f77bcf86cd799439011"
+
+    PlayerId:
+      name: id
+      in: path
+      required: true
+      description: Player ID
+      schema:
+        type: string
+      example: "507f1f77bcf86cd799439012"
+
+    MatchId:
+      name: id
+      in: path
+      required: true
+      description: Match ID
+      schema:
+        type: string
+      example: "507f1f77bcf86cd799439015"
+
+    LeagueId:
+      name: id
+      in: path
+      required: true
+      description: League ID
+      schema:
+        type: string
+      example: "507f1f77bcf86cd799439020"
+
+  schemas:
+    Club:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Club name
+        country:
+          type: string
+          description: Club's country
+        stadium:
+          type: string
+          description: Stadium name
+        capacity:
+          type: integer
+          description: Stadium capacity
+        finances:
+          $ref: '#/components/schemas/ClubFinances'
+        isActive:
+          type: boolean
+          description: Whether the club is active
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ClubCreate:
+      type: object
+      required:
+        - name
+        - country
+        - stadium
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        country:
+          type: string
+          minLength: 1
+          maxLength: 50
+        stadium:
+          type: string
+          minLength: 1
+          maxLength: 100
+        capacity:
+          type: integer
+          minimum: 1000
+          default: 50000
+        finances:
+          $ref: '#/components/schemas/ClubFinances'
+        isActive:
+          type: boolean
+          default: true
+
+    ClubUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        stadium:
+          type: string
+        capacity:
+          type: integer
+        isActive:
+          type: boolean
+
+    ClubFinances:
+      type: object
+      properties:
+        cash:
+          type: number
+          description: Available cash
+          format: float
+        budget:
+          type: number
+          description: Transfer budget
+          format: float
+        incomeHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialRecord'
+        expenseHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialRecord'
+
+    ClubFinancesUpdate:
+      type: object
+      properties:
+        cash:
+          type: number
+          format: float
+          minimum: 0
+        budget:
+          type: number
+          format: float
+          minimum: 0
+
+    Player:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Player name
+        age:
+          type: integer
+          description: Player age
+          minimum: 14
+          maximum: 40
+        position:
+          type: string
+          description: Player position
+          enum: [GK, CB, RB, LB, CDM, CM, CAM, RM, LM, ST, CF, LW, RW]
+        currentAbility:
+          type: integer
+          description: Current overall ability
+          minimum: 0
+          maximum: 99
+        potential:
+          type: integer
+          description: Maximum potential ability
+          minimum: 0
+          maximum: 99
+        attributes:
+          $ref: '#/components/schemas/PlayerAttributes'
+        contract:
+          $ref: '#/components/schemas/PlayerContract'
+        injury:
+          $ref: '#/components/schemas/PlayerInjury'
+        history:
+          $ref: '#/components/schemas/PlayerHistory'
+        clubId:
+          type: string
+          description: ID of the club the player belongs to
+        isYouth:
+          type: boolean
+          description: Whether the player is in youth academy
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PlayerCreate:
+      type: object
+      required:
+        - name
+        - age
+        - position
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        age:
+          type: integer
+          minimum: 14
+          maximum: 40
+        position:
+          type: string
+          enum: [GK, CB, RB, LB, CDM, CM, CAM, RM, LM, ST, CF, LW, RW]
+        clubId:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/PlayerAttributes'
+        potential:
+          type: integer
+          minimum: 0
+          maximum: 99
+        currentAbility:
+          type: integer
+          minimum: 0
+          maximum: 99
+
+    PlayerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        position:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/PlayerAttributes'
+        potential:
+          type: integer
+        currentAbility:
+          type: integer
+        clubId:
+          type: string
+
+    PlayerTransfer:
+      type: object
+      required:
+        - fromClubId
+        - toClubId
+      properties:
+        fromClubId:
+          type: string
+          description: ID of the club transferring from
+        toClubId:
+          type: string
+          description: ID of the club transferring to
+
+    PlayerAttributes:
+      type: object
+      properties:
+        speed:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Pace and acceleration
+        shooting:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Shooting ability
+        passing:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Passing accuracy and vision
+        defending:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Defensive skills
+        physical:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Strength and stamina
+        technical:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Technical skills and ball control
+        mental:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Mental attributes
+
+    PlayerContract:
+      type: object
+      properties:
+        salary:
+          type: number
+          description: Weekly salary
+          format: float
+        expiresAt:
+          type: string
+          format: date-time
+          description: Contract expiration date
+        bonus:
+          type: number
+          description: Signing bonus
+          format: float
+
+    PlayerInjury:
+      type: object
+      properties:
+        isInjured:
+          type: boolean
+        type:
+          type: string
+        severity:
+          type: string
+          enum: [minor, moderate, severe]
+        recoveryWeeks:
+          type: integer
+
+    PlayerHistory:
+      type: object
+      properties:
+        matchesPlayed:
+          type: integer
+          minimum: 0
+        goals:
+          type: integer
+          minimum: 0
+        assists:
+          type: integer
+          minimum: 0
+        growthLog:
+          type: array
+          items:
+            type: object
+
+    Match:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        leagueId:
+          type: string
+          description: League ID
+        homeTeam:
+          $ref: '#/components/schemas/MatchTeam'
+        awayTeam:
+          $ref: '#/components/schemas/MatchTeam'
+        date:
+          type: string
+          format: date-time
+          description: Match date and time
+        status:
+          type: string
+          enum: [scheduled, live, completed, postponed]
+          description: Match status
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchEvent'
+        statistics:
+          $ref: '#/components/schemas/MatchStatistics'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MatchCreate:
+      type: object
+      required:
+        - leagueId
+        - homeTeam
+        - awayTeam
+        - date
+      properties:
+        leagueId:
+          type: string
+        homeTeam:
+          $ref: '#/components/schemas/MatchTeamInput'
+        awayTeam:
+          $ref: '#/components/schemas/MatchTeamInput'
+        date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, live, completed, postponed]
+
+    MatchUpdate:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, live, completed, postponed]
+        homeTeam:
+          $ref: '#/components/schemas/MatchTeamInput'
+        awayTeam:
+          $ref: '#/components/schemas/MatchTeamInput'
+
+    MatchTeam:
+      type: object
+      properties:
+        clubId:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          description: Goals scored
+
+    MatchTeamInput:
+      type: object
+      required:
+        - clubId
+      properties:
+        clubId:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          default: 0
+
+    MatchEvent:
+      type: object
+      properties:
+        minute:
+          type: integer
+          minimum: 0
+          maximum: 90
+          description: Minute when the event occurred
+        type:
+          type: string
+          enum: [goal, shot, foul, corner, card]
+          description: Type of event
+        teamId:
+          type: string
+          description: ID of the team involved
+        description:
+          type: string
+          description: Event description
+
+    MatchStatistics:
+      type: object
+      properties:
+        possession:
+          type: object
+          properties:
+            home:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 100
+            away:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 100
+        shots:
+          type: object
+          properties:
+            home:
+              type: integer
+              minimum: 0
+            away:
+              type: integer
+              minimum: 0
+
+    League:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: League name
+        country:
+          type: string
+          description: League's country
+        season:
+          $ref: '#/components/schemas/LeagueSeason'
+        rules:
+          $ref: '#/components/schemas/LeagueRules'
+        standings:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueStanding'
+        schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleRound'
+        clubs:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+          description: Whether the league is active
+        history:
+          type: array
+          description: League history
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LeagueCreate:
+      type: object
+      required:
+        - name
+        - country
+        - season
+        - clubs
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        country:
+          type: string
+          minLength: 1
+          maxLength: 50
+        season:
+          $ref: '#/components/schemas/LeagueSeason'
+        clubs:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        rules:
+          $ref: '#/components/schemas/LeagueRules'
+        isActive:
+          type: boolean
+          default: true
+
+    LeagueUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        season:
+          $ref: '#/components/schemas/LeagueSeason'
+        clubs:
+          type: array
+          items:
+            type: string
+        rules:
+          $ref: '#/components/schemas/LeagueRules'
+        isActive:
+          type: boolean
+
+    LeagueSeason:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: Season start date
+        end:
+          type: string
+          format: date-time
+          description: Season end date
+
+    LeagueRules:
+      type: object
+      properties:
+        promotionSlots:
+          type: integer
+          minimum: 0
+          default: 3
+          description: Number of teams to promote
+        relegationSlots:
+          type: integer
+          minimum: 0
+          default: 3
+          description: Number of teams to relegate
+        points:
+          type: object
+          properties:
+            win:
+              type: integer
+              minimum: 0
+              default: 3
+            draw:
+              type: integer
+              minimum: 0
+              default: 1
+            loss:
+              type: integer
+              minimum: 0
+              default: 0
+
+    LeagueStanding:
+      type: object
+      properties:
+        clubId:
+          type: string
+        played:
+          type: integer
+          minimum: 0
+        won:
+          type: integer
+          minimum: 0
+        drawn:
+          type: integer
+          minimum: 0
+        lost:
+          type: integer
+          minimum: 0
+        goalsFor:
+          type: integer
+          minimum: 0
+        goalsAgainst:
+          type: integer
+          minimum: 0
+        points:
+          type: integer
+          minimum: 0
+
+    ScheduleRound:
+      type: object
+      properties:
+        round:
+          type: integer
+          description: Round number
+        matches:
+          type: array
+          items:
+            type: object
+            properties:
+              homeClubId:
+                type: string
+              awayClubId:
+                type: string
+              homeGoals:
+                type: integer
+                nullable: true
+              awayGoals:
+                type: integer
+                nullable: true
+              played:
+                type: boolean
+                default: false
+
+    FinancialRecord:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of financial record
+          enum: [ticket, broadcast, sponsorship, merchandise, wages, operations, transfer, penalty, other]
+        amount:
+          type: number
+          format: float
+          description: Amount in local currency
+        date:
+          type: string
+          format: date-time
+        description:
+          type: string
+          description: Description of the financial record
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+          example:
+            error: "Bad Request"
+            message: "Validation failed: name is required"
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+          example:
+            error: "Unauthorized"
+            message: "Missing or invalid authentication token"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+          example:
+            error: "Not Found"
+            message: "Club with ID '507f1f77bcf86cd799439011' not found"
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+          example:
+            error: "Internal Server Error"
+            message: "An unexpected error occurred"

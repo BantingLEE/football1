@@ -1,48 +1,25 @@
 import { Match, IMatch } from '../models/Match'
 import { MatchSimulation } from './matchSimulation'
 import { MatchNotFoundError, InvalidMatchIdError } from '../errors/matchErrors'
-import { getCacheInvalidation } from 'football-manager-shared'
-
-const cache = getCacheInvalidation()
 
 export class MatchService {
   async getAllMatches(): Promise<IMatch[]> {
-    const cacheKey = 'matches:all'
-    const cached = await cache.getJson<IMatch[]>(cacheKey)
-    if (cached) return cached
-
     const matches = await Match.find().exec()
-    await cache.setJson(cacheKey, matches, 300)
     return matches
   }
 
   async getMatchById(id: string): Promise<IMatch | null> {
-    const cacheKey = `match:${id}`
-    const cached = await cache.getJson<IMatch>(cacheKey)
-    if (cached) return cached
-
     const match = await Match.findById(id).exec()
-    if (match) {
-      await cache.setJson(cacheKey, match, 600)
-    }
     return match
   }
 
   async getMatchesByLeague(leagueId: string): Promise<IMatch[]> {
-    const cacheKey = `matches:league:${leagueId}`
-    const cached = await cache.getJson<IMatch[]>(cacheKey)
-    if (cached) return cached
-
     const matches = await Match.find({ leagueId }).sort({ date: 1 }).exec()
-    await cache.setJson(cacheKey, matches, 300)
     return matches
   }
 
   async createMatch(matchData: Partial<IMatch>): Promise<IMatch> {
     const match = await Match.create(matchData)
-    if (match.leagueId) {
-      await cache.invalidateLeague(match.leagueId.toString())
-    }
     return match
   }
 
@@ -54,17 +31,12 @@ export class MatchService {
 
     match.status = 'live'
     await match.save()
-    await cache.invalidateMatch(id)
 
     const simulation = new MatchSimulation(match)
     await simulation.simulateRealtime(this.simulateMinute.bind(this), socketIo)
 
     match.status = 'completed'
     await match.save()
-    await cache.invalidateMatch(id)
-    if (match.leagueId) {
-      await cache.invalidateLeague(match.leagueId.toString())
-    }
 
     return match
   }
@@ -100,12 +72,6 @@ export class MatchService {
 
   async updateMatch(id: string, matchData: Partial<IMatch>): Promise<IMatch | null> {
     const match = await Match.findByIdAndUpdate(id, matchData, { new: true }).exec()
-    if (match) {
-      await cache.invalidateMatch(id)
-      if (match.leagueId) {
-        await cache.invalidateLeague(match.leagueId.toString())
-      }
-    }
     return match
   }
 }

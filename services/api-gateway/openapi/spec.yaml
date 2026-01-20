@@ -1,0 +1,922 @@
+openapi: 3.0.3
+info:
+  title: Football Manager API
+  description: |
+    A comprehensive API for football management game.
+
+    ## Authentication
+    All API endpoints (except health and version endpoints) require authentication via JWT tokens.
+    Include the token in the Authorization header: `Bearer <token>`
+
+    ## API Versioning
+    The API uses URI-based versioning (e.g., `/api/v1/clubs`).
+    You can also specify the version using the `API-Version` header.
+
+    ## Rate Limiting
+    API is rate limited to 100 requests per 15 minutes per IP address.
+
+    ## Version 1.0.0
+    Current stable version with full feature support.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@football-manager.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development server
+  - url: https://api.football-manager.com/api/v1
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check and version information
+  - name: Clubs
+    description: Club management operations
+  - name: Players
+    description: Player management operations
+  - name: Matches
+    description: Match management operations
+  - name: Economy
+    description: Economy and financial operations
+  - name: Leagues
+    description: League management operations
+  - name: Youth
+    description: Youth academy operations
+  - name: Messages
+    description: Messaging system operations
+  - name: Notifications
+    description: Notification system operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Check if the API Gateway is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: api-gateway
+              examples:
+                success:
+                  summary: Successful health check
+                  value:
+                    status: ok
+                    service: api-gateway
+
+  /version:
+    get:
+      tags:
+        - Health
+      summary: Get API version information
+      description: Returns current API version, supported versions, and compatibility matrix
+      operationId: getVersionInfo
+      responses:
+        '200':
+          description: Version information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentVersion:
+                    type: string
+                    example: 1.0.0
+                  supportedVersions:
+                    type: array
+                    items:
+                      type: string
+                    example: ['1.0.0']
+                  deprecatedVersions:
+                    type: array
+                    items:
+                      type: string
+                    example: []
+                  deprecationDates:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  compatibilityMatrix:
+                    type: object
+                    additionalProperties:
+                      type: object
+
+  /clubs:
+    get:
+      tags:
+        - Clubs
+      summary: Get all clubs
+      description: Retrieve a paginated list of clubs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: Sort field
+          required: false
+          schema:
+            type: string
+            default: _id
+        - name: order
+          in: query
+          description: Sort order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: List of clubs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Club'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+        - Clubs
+      summary: Create a new club
+      description: Create a new football club with all required information
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClubRequest'
+            examples:
+              basic:
+                summary: Basic club creation
+                value:
+                  name: Manchester United
+                  foundedYear: 1878
+                  city: Manchester
+                  stadium:
+                    name: Old Trafford
+                    capacity: 74200
+              full:
+                summary: Club with all fields
+                value:
+                  name: Barcelona
+                  foundedYear: 1899
+                  city: Barcelona
+                  stadium:
+                    name: Camp Nou
+                    capacity: 99354
+                  finances:
+                    budget: 500000000
+                    cash: 250000000
+                  youthFacility:
+                    level: 5
+                    capacity: 80
+                    trainingQuality: 0.95
+                  tacticalPreference:
+                    formation: 4-3-3
+                    attacking: 75
+                    defending: 65
+      responses:
+        '201':
+          description: Club created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /clubs/{id}:
+    get:
+      tags:
+        - Clubs
+      summary: Get club by ID
+      description: Retrieve a specific club by its ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      responses:
+        '200':
+          description: Club details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Clubs
+      summary: Update club
+      description: Update club information (partial update)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClubRequest'
+      responses:
+        '200':
+          description: Club updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Clubs
+      summary: Delete club
+      description: Delete a club by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      responses:
+        '204':
+          description: Club deleted successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /clubs/{id}/finances:
+    patch:
+      tags:
+        - Clubs
+      summary: Update club finances
+      description: Update club financial records with income and expenses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClubId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFinancesRequest'
+      responses:
+        '200':
+          description: Finances updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /players:
+    get:
+      tags:
+        - Players
+      summary: Get all players
+      description: Retrieve a paginated list of players
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Pagination'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Player'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /matches:
+    get:
+      tags:
+        - Matches
+      summary: Get all matches
+      description: Retrieve a paginated list of matches
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Pagination'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /economy:
+    get:
+      tags:
+        - Economy
+      summary: Get economy overview
+      description: Retrieve economy and financial information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Economy information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  budget:
+                    type: number
+                  cash:
+                    type: number
+                  transfers:
+                    type: array
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues:
+    get:
+      tags:
+        - Leagues
+      summary: Get all leagues
+      description: Retrieve a list of leagues
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of leagues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/League'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /youth:
+    get:
+      tags:
+        - Youth
+      summary: Get youth academy information
+      description: Retrieve youth academy players and facilities
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Youth academy information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  players:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/YouthPlayer'
+                  facility:
+                    $ref: '#/components/schemas/YouthFacility'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /messages:
+    get:
+      tags:
+        - Messages
+      summary: Get messages
+      description: Retrieve messages for the user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      description: Retrieve notifications for the user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+
+  parameters:
+    ClubId:
+      name: id
+      in: path
+      required: true
+      description: MongoDB ObjectID of the club
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+      example: 507f1f77bcf86cd799439011
+
+    Pagination:
+      name: page
+      in: query
+      description: Page number
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    Sort:
+      name: sort
+      in: query
+      description: Sort field
+      required: false
+      schema:
+        type: string
+        default: _id
+
+  schemas:
+    Stadium:
+      type: object
+      required:
+        - name
+        - capacity
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Old Trafford
+        capacity:
+          type: integer
+          minimum: 1000
+          maximum: 1000000
+          example: 74200
+
+    Finances:
+      type: object
+      properties:
+        budget:
+          type: number
+          minimum: 0
+          example: 500000000
+        cash:
+          type: number
+          minimum: 0
+          example: 250000000
+
+    YouthFacility:
+      type: object
+      properties:
+        level:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        capacity:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 80
+        trainingQuality:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.95
+
+    TacticalPreference:
+      type: object
+      properties:
+        formation:
+          type: string
+          enum: ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '5-3-2', '3-4-3']
+          example: 4-3-3
+        attacking:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 75
+        defending:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 65
+
+    Club:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Manchester United
+        foundedYear:
+          type: integer
+          minimum: 1800
+          maximum: 2025
+          example: 1878
+        city:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Manchester
+        stadium:
+          $ref: '#/components/schemas/Stadium'
+        finances:
+          $ref: '#/components/schemas/Finances'
+        youthFacility:
+          $ref: '#/components/schemas/YouthFacility'
+        tacticalPreference:
+          $ref: '#/components/schemas/TacticalPreference'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateClubRequest:
+      type: object
+      required:
+        - name
+        - foundedYear
+        - city
+        - stadium
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Manchester United
+        foundedYear:
+          type: integer
+          minimum: 1800
+          maximum: 2025
+          example: 1878
+        city:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Manchester
+        stadium:
+          $ref: '#/components/schemas/Stadium'
+        finances:
+          $ref: '#/components/schemas/Finances'
+        youthFacility:
+          $ref: '#/components/schemas/YouthFacility'
+        tacticalPreference:
+          $ref: '#/components/schemas/TacticalPreference'
+
+    UpdateClubRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        foundedYear:
+          type: integer
+          minimum: 1800
+          maximum: 2025
+        city:
+          type: string
+          minLength: 2
+          maxLength: 100
+        stadium:
+          $ref: '#/components/schemas/Stadium'
+        finances:
+          $ref: '#/components/schemas/Finances'
+        youthFacility:
+          $ref: '#/components/schemas/YouthFacility'
+        tacticalPreference:
+          $ref: '#/components/schemas/TacticalPreference'
+
+    UpdateFinancesRequest:
+      type: object
+      required:
+        - income
+        - expense
+      properties:
+        income:
+          type: number
+          minimum: 0
+          example: 1000000
+        expense:
+          type: number
+          minimum: 0
+          example: 500000
+
+    Player:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439012
+        name:
+          type: string
+          example: Marcus Rashford
+        age:
+          type: integer
+          example: 26
+        position:
+          type: string
+          example: Forward
+        clubId:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        skills:
+          type: object
+          properties:
+            pace:
+              type: integer
+              example: 88
+            shooting:
+              type: integer
+              example: 85
+            passing:
+              type: integer
+              example: 78
+
+    Match:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439013
+        homeTeam:
+          type: string
+          example: Manchester United
+        awayTeam:
+          type: string
+          example: Liverpool
+        date:
+          type: string
+          format: date-time
+        homeScore:
+          type: integer
+          example: 2
+        awayScore:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [scheduled, ongoing, finished]
+          example: finished
+
+    League:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439014
+        name:
+          type: string
+          example: Premier League
+        country:
+          type: string
+          example: England
+        teams:
+          type: array
+          items:
+            type: string
+
+    YouthPlayer:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        age:
+          type: integer
+        potential:
+          type: integer
+        skills:
+          type: object
+
+    Message:
+      type: object
+      properties:
+        _id:
+          type: string
+        senderId:
+          type: string
+        receiverId:
+          type: string
+        content:
+          type: string
+        read:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidBody:
+              summary: Invalid request body
+              value:
+                error: Validation failed
+                details:
+                  - field: name
+                    message: 'name is required'
+                  - field: foundedYear
+                    message: 'foundedYear must be greater than or equal to 1800'
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: No token provided
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Club not found
+
+    TooManyRequests:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Too many requests from this IP, please try again later.

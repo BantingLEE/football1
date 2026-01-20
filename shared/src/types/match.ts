@@ -18,7 +18,7 @@ export interface TeamMatchData {
 }
 
 export interface TeamTactics {
-  formation: Formation
+  formation: string
   attacking: number
   defending: number
   playStyle: 'possession' | 'counter' | 'direct'

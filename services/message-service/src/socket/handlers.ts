@@ -9,6 +9,9 @@ import {
   validateLeagueUpdate
 } from '../middleware/validation';
 import { eventRateLimit } from '../middleware/rateLimiter';
+import { getLogger, Tracing, toAppError } from 'football-manager-shared';
+
+const logger = getLogger();
 
 export class SocketHandlers {
   constructor(
@@ -21,82 +24,99 @@ export class SocketHandlers {
   }
 
   private handleConnection(socket: AuthenticatedSocket): void {
-    console.log(`Client connected: ${socket.id}, User: ${socket.userId || 'anonymous'}`);
+    const userId = socket.userId || 'anonymous';
+    const tracingContext = Tracing.toLogContext({
+      correlationId: socket.handshake.headers['x-correlation-id'] as string || Tracing.generateCorrelationId(),
+      requestId: Tracing.generateRequestId(),
+      userId,
+    });
+
+    logger.info(`Client connected: ${socket.id}, User: ${userId}`, tracingContext);
 
     socket.on('join:match', (data) => {
-      try {
+      this.wrapHandler(socket, 'join:match', () => {
         eventRateLimit(socket, 'join:match', (err) => {
           if (err) {
-            socket.emit('error', { message: err.message });
+            socket.emit('error', { message: err.message, code: 'RATE_LIMIT_EXCEEDED' });
             return;
           }
-          this.handleJoinMatch(socket, data);
+          this.handleJoinMatch(socket, data, tracingContext);
         });
-      } catch (error) {
-        socket.emit('error', { message: 'Internal server error' });
-      }
+      }, tracingContext);
     });
 
     socket.on('leave:match', (data) => {
-      try {
+      this.wrapHandler(socket, 'leave:match', () => {
         eventRateLimit(socket, 'leave:match', (err) => {
           if (err) {
-            socket.emit('error', { message: err.message });
+            socket.emit('error', { message: err.message, code: 'RATE_LIMIT_EXCEEDED' });
             return;
           }
-          this.handleLeaveMatch(socket, data);
+          this.handleLeaveMatch(socket, data, tracingContext);
         });
-      } catch (error) {
-        socket.emit('error', { message: 'Internal server error' });
-      }
+      }, tracingContext);
     });
 
     socket.on('match:event', (data) => {
-      try {
+      this.wrapHandler(socket, 'match:event', () => {
         eventRateLimit(socket, 'match:event', (err) => {
           if (err) {
-            socket.emit('error', { message: err.message });
+            socket.emit('error', { message: err.message, code: 'RATE_LIMIT_EXCEEDED' });
             return;
           }
-          this.handleMatchEvent(socket, data);
+          this.handleMatchEvent(socket, data, tracingContext);
         });
-      } catch (error) {
-        socket.emit('error', { message: 'Internal server error' });
-      }
+      }, tracingContext);
     });
 
     socket.on('match:update', (data) => {
-      try {
+      this.wrapHandler(socket, 'match:update', () => {
         eventRateLimit(socket, 'match:update', (err) => {
           if (err) {
-            socket.emit('error', { message: err.message });
+            socket.emit('error', { message: err.message, code: 'RATE_LIMIT_EXCEEDED' });
             return;
           }
-          this.handleMatchUpdate(socket, data);
+          this.handleMatchUpdate(socket, data, tracingContext);
         });
-      } catch (error) {
-        socket.emit('error', { message: 'Internal server error' });
-      }
+      }, tracingContext);
     });
 
     socket.on('league:update', (data) => {
-      try {
+      this.wrapHandler(socket, 'league:update', () => {
         eventRateLimit(socket, 'league:update', (err) => {
           if (err) {
-            socket.emit('error', { message: err.message });
+            socket.emit('error', { message: err.message, code: 'RATE_LIMIT_EXCEEDED' });
             return;
           }
-          this.handleLeagueUpdate(socket, data);
+          this.handleLeagueUpdate(socket, data, tracingContext);
         });
-      } catch (error) {
-        socket.emit('error', { message: 'Internal server error' });
-      }
+      }, tracingContext);
     });
 
-    socket.on('disconnect', () => this.handleDisconnect(socket));
+    socket.on('error', (error) => {
+      logger.error(`Socket error: ${socket.id}`, error, tracingContext);
+    });
+
+    socket.on('disconnect', (reason) => {
+      this.handleDisconnect(socket, reason, tracingContext);
+    });
   }
 
-  private handleJoinMatch(socket: AuthenticatedSocket, data: unknown): void {
+  private wrapHandler(socket: AuthenticatedSocket, event: string, handler: () => void, tracingContext: Record<string, string>): void {
+    try {
+      handler();
+    } catch (error) {
+      const appError = toAppError(error);
+      logger.error(`Error in ${event}`, error, tracingContext);
+      socket.emit('error', {
+        message: appError.message,
+        code: appError.code,
+        correlationId: tracingContext.correlationId,
+      });
+    }
+  }
+
+  private handleJoinMatch(socket: AuthenticatedSocket, data: unknown, tracingContext: Record<string, string>): void {
     try {
       const { matchId, userId } = validateJoinMatch(data);
       const room = `match:${matchId}`;
@@ -104,17 +124,21 @@ export class SocketHandlers {
       this.messageService.addToRoom(room, socket.id);
       socket.join(room);
       
-      console.log(`User ${userId} joined match ${matchId}`);
+      logger.info(`User ${userId} joined match ${matchId}`, tracingContext);
       
       socket.emit('joined:match', { matchId, socketId: socket.id });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      socket.emit('error', { message });
-      console.error(`Error in handleJoinMatch: ${message}`);
+      const appError = toAppError(error);
+      logger.error(`Error in handleJoinMatch`, error, tracingContext);
+      socket.emit('error', {
+        message: appError.message,
+        code: appError.code,
+        correlationId: tracingContext.correlationId,
+      });
     }
   }
 
-  private handleLeaveMatch(socket: AuthenticatedSocket, data: unknown): void {
+  private handleLeaveMatch(socket: AuthenticatedSocket, data: unknown, tracingContext: Record<string, string>): void {
     try {
       const { matchId, userId } = validateLeaveMatch(data);
       const room = `match:${matchId}`;
@@ -122,17 +146,21 @@ export class SocketHandlers {
       this.messageService.removeFromRoom(room, socket.id);
       socket.leave(room);
       
-      console.log(`User ${userId} left match ${matchId}`);
+      logger.info(`User ${userId} left match ${matchId}`, tracingContext);
       
       socket.emit('left:match', { matchId });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      socket.emit('error', { message });
-      console.error(`Error in handleLeaveMatch: ${message}`);
+      const appError = toAppError(error);
+      logger.error(`Error in handleLeaveMatch`, error, tracingContext);
+      socket.emit('error', {
+        message: appError.message,
+        code: appError.code,
+        correlationId: tracingContext.correlationId,
+      });
     }
   }
 
-  private handleMatchEvent(socket: AuthenticatedSocket, data: unknown): void {
+  private handleMatchEvent(socket: AuthenticatedSocket, data: unknown, tracingContext: Record<string, string>): void {
     try {
       const { matchId, event, payload } = validateMatchEvent(data);
       const room = `match:${matchId}`;
@@ -142,14 +170,20 @@ export class SocketHandlers {
         payload,
         timestamp: new Date().toISOString()
       });
+      
+      logger.debug(`Match event broadcasted for match ${matchId}`, tracingContext);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      socket.emit('error', { message });
-      console.error(`Error in handleMatchEvent: ${message}`);
+      const appError = toAppError(error);
+      logger.error(`Error in handleMatchEvent`, error, tracingContext);
+      socket.emit('error', {
+        message: appError.message,
+        code: appError.code,
+        correlationId: tracingContext.correlationId,
+      });
     }
   }
 
-  private handleMatchUpdate(socket: AuthenticatedSocket, data: unknown): void {
+  private handleMatchUpdate(socket: AuthenticatedSocket, data: unknown, tracingContext: Record<string, string>): void {
     try {
       const { matchId, state } = validateMatchUpdate(data);
       const room = `match:${matchId}`;
@@ -159,14 +193,20 @@ export class SocketHandlers {
         state,
         timestamp: new Date().toISOString()
       });
+      
+      logger.debug(`Match update broadcasted for match ${matchId}`, tracingContext);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      socket.emit('error', { message });
-      console.error(`Error in handleMatchUpdate: ${message}`);
+      const appError = toAppError(error);
+      logger.error(`Error in handleMatchUpdate`, error, tracingContext);
+      socket.emit('error', {
+        message: appError.message,
+        code: appError.code,
+        correlationId: tracingContext.correlationId,
+      });
     }
   }
 
-  private handleLeagueUpdate(socket: AuthenticatedSocket, data: unknown): void {
+  private handleLeagueUpdate(socket: AuthenticatedSocket, data: unknown, tracingContext: Record<string, string>): void {
     try {
       const { leagueId, update } = validateLeagueUpdate(data);
       const room = `league:${leagueId}`;
@@ -176,14 +216,27 @@ export class SocketHandlers {
         update,
         timestamp: new Date().toISOString()
       });
+      
+      logger.debug(`League update broadcasted for league ${leagueId}`, tracingContext);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      socket.emit('error', { message });
-      console.error(`Error in handleLeagueUpdate: ${message}`);
+      const appError = toAppError(error);
+      logger.error(`Error in handleLeagueUpdate`, error, tracingContext);
+      socket.emit('error', {
+        message: appError.message,
+        code: appError.code,
+        correlationId: tracingContext.correlationId,
+      });
     }
   }
 
-  private handleDisconnect(socket: AuthenticatedSocket): void {
-    console.log(`Client disconnected: ${socket.id}`);
+  private handleDisconnect(socket: AuthenticatedSocket, reason: string, tracingContext: Record<string, string>): void {
+    const userId = (socket as any).userId || 'unknown';
+    logger.info(`Client disconnected: ${socket.id}, User: ${userId}, Reason: ${reason}`, tracingContext);
+    
+    try {
+      this.messageService.handleDisconnect(socket.id);
+    } catch (error) {
+      logger.error(`Error handling disconnect for socket ${socket.id}`, error, tracingContext);
+    }
   }
 }

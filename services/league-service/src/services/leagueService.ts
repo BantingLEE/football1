@@ -1,4 +1,7 @@
 import { League, ILeague, IScheduleRound } from '../models/League'
+import { getCacheInvalidation } from 'football-manager-shared'
+
+const cache = getCacheInvalidation()
 
 interface CreateLeagueInput {
   name: string
@@ -37,7 +40,12 @@ interface PromotionRelegationResult {
 export class LeagueService {
   async getLeagues(): Promise<ILeague[]> {
     try {
+      const cacheKey = 'leagues:all'
+      const cached = await cache.getJson<ILeague[]>(cacheKey)
+      if (cached) return cached
+
       const leagues = await League.find().exec()
+      await cache.setJson(cacheKey, leagues, 300)
       return leagues
     } catch (error) {
       throw new Error(`Failed to fetch leagues: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -281,6 +289,7 @@ export class LeagueService {
       this.sortStandings(league)
 
       await league.save()
+      await cache.invalidateLeague(matchResult.leagueId)
       return league
     } catch (error) {
       throw new Error(`Failed to update standings: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -293,6 +302,10 @@ export class LeagueService {
         throw new Error('League ID is required')
       }
 
+      const cacheKey = `league:${leagueId}:standings`
+      const cached = await cache.getJson<ILeague>(cacheKey)
+      if (cached) return cached
+
       const league = await League.findById(leagueId).exec()
       if (!league) {
         throw new Error('League not found')
@@ -300,6 +313,7 @@ export class LeagueService {
 
       this.sortStandings(league)
 
+      await cache.setJson(cacheKey, league, 180)
       return league
     } catch (error) {
       throw new Error(`Failed to fetch standings: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -311,6 +325,12 @@ export class LeagueService {
       if (!leagueId) {
         throw new Error('League ID is required')
       }
+
+      const cacheKey = clubId 
+        ? `league:${leagueId}:schedule:club:${clubId}`
+        : `league:${leagueId}:schedule`
+      const cached = await cache.getJson<ILeague>(cacheKey)
+      if (cached) return cached
 
       const league = await League.findById(leagueId).exec()
       if (!league) {
@@ -328,6 +348,7 @@ export class LeagueService {
         league.schedule = filteredSchedule
       }
 
+      await cache.setJson(cacheKey, league, 600)
       return league
     } catch (error) {
       throw new Error(`Failed to fetch schedule: ${error instanceof Error ? error.message : 'Unknown error'}`)

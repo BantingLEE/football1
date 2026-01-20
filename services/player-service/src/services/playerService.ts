@@ -1,5 +1,8 @@
 import { Player, IPlayer } from '../models/Player'
 import { ClientSession } from 'mongoose'
+import { getCacheInvalidation } from 'football-manager-shared'
+
+const cache = getCacheInvalidation()
 
 function randomBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -8,7 +11,12 @@ function randomBetween(min: number, max: number): number {
 export class PlayerService {
   async getAllPlayers(): Promise<IPlayer[]> {
     try {
+      const cacheKey = 'players:all'
+      const cached = await cache.getJson<IPlayer[]>(cacheKey)
+      if (cached) return cached
+
       const players = await Player.find().exec()
+      await cache.setJson(cacheKey, players, 300)
       return players
     } catch (error) {
       throw new Error(`Failed to fetch players: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -20,7 +28,14 @@ export class PlayerService {
       if (!id) {
         throw new Error('Player ID is required')
       }
+      const cacheKey = `player:${id}`
+      const cached = await cache.getJson<IPlayer>(cacheKey)
+      if (cached) return cached
+
       const player = await Player.findById(id).exec()
+      if (player) {
+        await cache.setJson(cacheKey, player, 600)
+      }
       return player
     } catch (error) {
       throw new Error(`Failed to fetch player: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -32,7 +47,12 @@ export class PlayerService {
       if (!clubId) {
         throw new Error('Club ID is required')
       }
+      const cacheKey = `players:club:${clubId}`
+      const cached = await cache.getJson<IPlayer[]>(cacheKey)
+      if (cached) return cached
+
       const players = await Player.find({ clubId }).exec()
+      await cache.setJson(cacheKey, players, 300)
       return players
     } catch (error) {
       throw new Error(`Failed to fetch players: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -58,6 +78,10 @@ export class PlayerService {
         }
       })
 
+      if (newPlayer.clubId) {
+        await cache.invalidateClub(newPlayer.clubId.toString())
+      }
+
       return newPlayer
     } catch (error) {
       throw new Error(`Failed to create player: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -70,6 +94,12 @@ export class PlayerService {
         throw new Error('Player ID is required')
       }
       const player = await Player.findByIdAndUpdate(id, playerData, { new: true }).exec()
+      if (player) {
+        await cache.invalidatePlayer(id)
+        if (player.clubId) {
+          await cache.invalidateClub(player.clubId.toString())
+        }
+      }
       return player
     } catch (error) {
       throw new Error(`Failed to update player: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -82,6 +112,12 @@ export class PlayerService {
         throw new Error('Player ID is required')
       }
       const player = await Player.findByIdAndDelete(id).exec()
+      if (player) {
+        await cache.invalidatePlayer(id)
+        if (player.clubId) {
+          await cache.invalidateClub(player.clubId.toString())
+        }
+      }
       return player
     } catch (error) {
       throw new Error(`Failed to delete player: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -109,6 +145,12 @@ export class PlayerService {
 
       player.clubId = toClubId as any
       await player.save({ session })
+
+      await Promise.all([
+        cache.invalidatePlayer(playerId),
+        cache.invalidateClub(fromClubId),
+        cache.invalidateClub(toClubId)
+      ])
 
       return player
     } catch (error) {
