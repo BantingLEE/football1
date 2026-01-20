@@ -3,17 +3,17 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:7.0
-    container_name: football-mongodb
+    container_name: football-mongodb-dev
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: football_manager
+      MONGO_INITDB_DATABASE: football_manager_dev
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_dev_data:/data/db
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
@@ -23,13 +23,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: football-redis
+    container_name: football-redis-dev
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_dev_data:/data
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -39,7 +39,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.12-management
-    container_name: football-rabbitmq
+    container_name: football-rabbitmq-dev
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -47,9 +47,9 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_dev_data:/var/lib/rabbitmq
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
@@ -60,31 +60,40 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: football-frontend
+      dockerfile: Dockerfile.dev
+    container_name: football-frontend-dev
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://api-gateway:3001
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    command: npm run dev
     depends_on:
       api-gateway:
         condition: service_started
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   api-gateway:
     build:
       context: ./services/api-gateway
-      dockerfile: Dockerfile
-    container_name: football-api-gateway
+      dockerfile: Dockerfile.dev
+    container_name: football-api-gateway-dev
     ports:
       - "3001:3001"
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3001
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
@@ -96,6 +105,7 @@ services:
       - LEAGUE_SERVICE_URL=http://league-service:3007
       - MESSAGE_SERVICE_URL=http://message-service:3008
       - NOTIFICATION_SERVICE_URL=http://notification-service:3009
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -104,23 +114,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   club-service:
     build:
       context: ./services/club-service
-      dockerfile: Dockerfile
-    container_name: football-club-service
+      dockerfile: Dockerfile.dev
+    container_name: football-club-service-dev
     ports:
       - "3002:3002"
+    volumes:
+      - ./services/club-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3002
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -129,23 +144,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   player-service:
     build:
       context: ./services/player-service
-      dockerfile: Dockerfile
-    container_name: football-player-service
+      dockerfile: Dockerfile.dev
+    container_name: football-player-service-dev
     ports:
       - "3003:3003"
+    volumes:
+      - ./services/player-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3003
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -154,23 +174,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   match-service:
     build:
       context: ./services/match-service
-      dockerfile: Dockerfile
-    container_name: football-match-service
+      dockerfile: Dockerfile.dev
+    container_name: football-match-service-dev
     ports:
       - "3004:3004"
+    volumes:
+      - ./services/match-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3004
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -179,23 +204,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   economy-service:
     build:
       context: ./services/economy-service
-      dockerfile: Dockerfile
-    container_name: football-economy-service
+      dockerfile: Dockerfile.dev
+    container_name: football-economy-service-dev
     ports:
       - "3005:3005"
+    volumes:
+      - ./services/economy-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3005
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -204,23 +234,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   youth-service:
     build:
       context: ./services/youth-service
-      dockerfile: Dockerfile
-    container_name: football-youth-service
+      dockerfile: Dockerfile.dev
+    container_name: football-youth-service-dev
     ports:
       - "3006:3006"
+    volumes:
+      - ./services/youth-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3006
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -229,23 +264,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   league-service:
     build:
       context: ./services/league-service
-      dockerfile: Dockerfile
-    container_name: football-league-service
+      dockerfile: Dockerfile.dev
+    container_name: football-league-service-dev
     ports:
       - "3007:3007"
+    volumes:
+      - ./services/league-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3007
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -254,23 +294,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   message-service:
     build:
       context: ./services/message-service
-      dockerfile: Dockerfile
-    container_name: football-message-service
+      dockerfile: Dockerfile.dev
+    container_name: football-message-service-dev
     ports:
       - "3008:3008"
+    volumes:
+      - ./services/message-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3008
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -279,23 +324,28 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
   notification-service:
     build:
       context: ./services/notification-service
-      dockerfile: Dockerfile
-    container_name: football-notification-service
+      dockerfile: Dockerfile.dev
+    container_name: football-notification-service-dev
     ports:
       - "3009:3009"
+    volumes:
+      - ./services/notification-service:/app
+      - /app/node_modules
+      - /app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3009
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/football_manager_dev?authSource=admin
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+    command: npm run dev
     depends_on:
       mongodb:
         condition: service_healthy
@@ -304,14 +354,14 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
+      - football-dev-network
     restart: unless-stopped
 
 volumes:
-  mongodb_data:
-  redis_data:
-  rabbitmq_data:
+  mongodb_dev_data:
+  redis_dev_data:
+  rabbitmq_dev_data:
 
 networks:
-  football-network:
+  football-dev-network:
     driver: bridge

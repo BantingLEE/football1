@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:7.0
-    container_name: football-mongodb
+    container_name: football-mongodb-prod
     ports:
       - "27017:27017"
     environment:
@@ -11,10 +11,15 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: football_manager
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_prod_data:/data/db
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
@@ -23,14 +28,20 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: football-redis
+    container_name: football-redis-prod
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - redis_data:/data
+      - redis_prod_data:/data
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -39,7 +50,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.12-management
-    container_name: football-rabbitmq
+    container_name: football-rabbitmq-prod
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -47,10 +58,15 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_prod_data:/var/lib/rabbitmq
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 30s
@@ -61,7 +77,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: football-frontend
+      target: runner
+    container_name: football-frontend-prod
     ports:
       - "3000:3000"
     environment:
@@ -71,14 +88,27 @@ services:
       api-gateway:
         condition: service_started
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   api-gateway:
     build:
       context: ./services/api-gateway
       dockerfile: Dockerfile
-    container_name: football-api-gateway
+    container_name: football-api-gateway-prod
     ports:
       - "3001:3001"
     environment:
@@ -104,14 +134,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   club-service:
     build:
       context: ./services/club-service
       dockerfile: Dockerfile
-    container_name: football-club-service
+    container_name: football-club-service-prod
     ports:
       - "3002:3002"
     environment:
@@ -129,14 +172,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   player-service:
     build:
       context: ./services/player-service
       dockerfile: Dockerfile
-    container_name: football-player-service
+    container_name: football-player-service-prod
     ports:
       - "3003:3003"
     environment:
@@ -154,14 +210,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   match-service:
     build:
       context: ./services/match-service
       dockerfile: Dockerfile
-    container_name: football-match-service
+    container_name: football-match-service-prod
     ports:
       - "3004:3004"
     environment:
@@ -179,14 +248,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   economy-service:
     build:
       context: ./services/economy-service
       dockerfile: Dockerfile
-    container_name: football-economy-service
+    container_name: football-economy-service-prod
     ports:
       - "3005:3005"
     environment:
@@ -204,14 +286,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   youth-service:
     build:
       context: ./services/youth-service
       dockerfile: Dockerfile
-    container_name: football-youth-service
+    container_name: football-youth-service-prod
     ports:
       - "3006:3006"
     environment:
@@ -229,14 +324,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   league-service:
     build:
       context: ./services/league-service
       dockerfile: Dockerfile
-    container_name: football-league-service
+    container_name: football-league-service-prod
     ports:
       - "3007:3007"
     environment:
@@ -254,14 +362,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   message-service:
     build:
       context: ./services/message-service
       dockerfile: Dockerfile
-    container_name: football-message-service
+    container_name: football-message-service-prod
     ports:
       - "3008:3008"
     environment:
@@ -279,14 +400,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   notification-service:
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
-    container_name: football-notification-service
+    container_name: football-notification-service-prod
     ports:
       - "3009:3009"
     environment:
@@ -304,14 +438,27 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - football-network
-    restart: unless-stopped
+      - football-prod-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
 volumes:
-  mongodb_data:
-  redis_data:
-  rabbitmq_data:
+  mongodb_prod_data:
+  redis_prod_data:
+  rabbitmq_prod_data:
 
 networks:
-  football-network:
+  football-prod-network:
     driver: bridge
