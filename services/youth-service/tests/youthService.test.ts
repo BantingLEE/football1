@@ -1,24 +1,10 @@
 import { YouthService } from '../src/services/youthService'
 import { Player } from '../src/models/Player'
 import { YouthFacility } from '../src/models/YouthFacility'
+import { YOUTH_FACILITY_LEVELS, PLAYER_AGE_GROUPS } from 'football-manager-shared'
 
 jest.mock('../src/models/Player')
 jest.mock('../src/models/YouthFacility')
-
-const YOUTH_FACILITY_LEVELS = {
-  1: { capacity: 10, quality: 0.3, newPlayersPerWeek: 1 },
-  2: { capacity: 15, quality: 0.5, newPlayersPerWeek: 1 },
-  3: { capacity: 20, quality: 0.7, newPlayersPerWeek: 2 },
-  4: { capacity: 25, quality: 0.85, newPlayersPerWeek: 2 },
-  5: { capacity: 30, quality: 1.0, newPlayersPerWeek: 3 },
-}
-
-const PLAYER_AGE_GROUPS = {
-  YOUTH: { min: 14, max: 18 },
-  PRIME: { min: 19, max: 28 },
-  VETERAN: { min: 29, max: 35 },
-  RETIREMENT: { min: 36, max: 40 },
-}
 
 describe('YouthService', () => {
   let youthService: YouthService
