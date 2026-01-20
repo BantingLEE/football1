@@ -1,5 +1,21 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 
+export type IncomeType = 'ticket' | 'broadcast' | 'sponsorship' | 'merchandise' | 'other'
+export type ExpenseType = 'wages' | 'transfer' | 'operations' | 'penalty' | 'other'
+export type Formation = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '5-3-2' | '3-4-3'
+
+export interface IncomeRecord {
+  type: IncomeType
+  amount: number
+  date: Date
+}
+
+export interface ExpenseRecord {
+  type: ExpenseType
+  amount: number
+  date: Date
+}
+
 export interface IClub extends Document {
   name: string
   foundedYear: number
@@ -11,8 +27,8 @@ export interface IClub extends Document {
   finances: {
     budget: number
     cash: number
-    incomeHistory: any[]
-    expenseHistory: any[]
+    incomeHistory: IncomeRecord[]
+    expenseHistory: ExpenseRecord[]
   }
   youthFacility: {
     level: number
@@ -20,7 +36,7 @@ export interface IClub extends Document {
     trainingQuality: number
   }
   tacticalPreference: {
-    formation: string
+    formation: Formation
     attacking: number
     defending: number
   }

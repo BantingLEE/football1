@@ -1,5 +1,20 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 
+export interface IGrowthLogEntry {
+  date: Date
+  attributes: {
+    speed: number
+    shooting: number
+    passing: number
+    defending: number
+    physical: number
+    technical: number
+    mental: number
+    goalkeeping?: number
+  }
+  currentAbility: number
+}
+
 export interface IPlayer extends Document {
   name: string
   age: number
@@ -33,7 +48,7 @@ export interface IPlayer extends Document {
     matchesPlayed: number
     goals: number
     assists: number
-    growthLog: any[]
+    growthLog: IGrowthLogEntry[]
   }
   clubId?: string
   isYouth?: boolean

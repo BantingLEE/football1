@@ -5,8 +5,11 @@ import morgan from 'morgan'
 import dotenv from 'dotenv'
 import routes from './routes'
 import { rateLimiter } from './middleware/rateLimit'
+import { connectToDatabase } from './config/database'
 
 dotenv.config()
+
+connectToDatabase()
 
 const app = express()
 const PORT = process.env.PORT || 3001
