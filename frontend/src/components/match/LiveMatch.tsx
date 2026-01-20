@@ -68,7 +68,7 @@ export default function LiveMatch({ match: initialMatch }: LiveMatchProps) {
       {match.status === 'live' && match.minute && (
         <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
           <p className="text-lg font-bold text-primary">
-            {match.minute}'
+            {match.minute}&apos;
           </p>
           <p className="text-sm text-muted-foreground">Match in progress</p>
         </div>
