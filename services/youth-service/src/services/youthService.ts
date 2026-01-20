@@ -11,7 +11,7 @@ function randomBetween(min: number, max: number): number {
 export class YouthService {
   async generateYouthPlayers(clubId: string): Promise<IPlayer[]> {
     try {
-      if (!clubId) {
+      if (!clubId || !/^[0-9a-fA-F]{24}$/.test(clubId)) {
         throw new Error('Club ID is required')
       }
 
@@ -20,7 +20,7 @@ export class YouthService {
         throw new Error('Youth facility not found for club')
       }
 
-      const capacity = this['calculateFacilityCapacity'](facility.level)
+      const capacity = this.calculateFacilityCapacity(facility.level)
       const existingYouthPlayers = await Player.find({ clubId, isYouth: true }).exec()
       const availableSlots = capacity - existingYouthPlayers.length
 
@@ -92,9 +92,9 @@ export class YouthService {
     }
   }
 
-  async upgradeFacility(clubId: string, targetLevel: number): Promise<any> {
+  async upgradeFacility(clubId: string, targetLevel: number): Promise<IYouthFacility> {
     try {
-      if (!clubId) {
+      if (!clubId || !/^[0-9a-fA-F]{24}$/.test(clubId)) {
         throw new Error('Club ID is required')
       }
       if (!targetLevel || targetLevel < 1) {
@@ -115,9 +115,12 @@ export class YouthService {
       }
 
       facility.level = targetLevel
+      if (!facility.upgradeHistory) {
+        facility.upgradeHistory = []
+      }
       facility.upgradeHistory.push({
         date: new Date(),
-        fromLevel: facility.level - 1,
+        fromLevel: targetLevel - 1,
         toLevel: targetLevel
       })
 
@@ -130,7 +133,7 @@ export class YouthService {
 
   async getYouthPlayers(clubId: string): Promise<IPlayer[]> {
     try {
-      if (!clubId) {
+      if (!clubId || !/^[0-9a-fA-F]{24}$/.test(clubId)) {
         throw new Error('Club ID is required')
       }
 
@@ -143,7 +146,7 @@ export class YouthService {
 
   async promoteToFirstTeam(playerId: string): Promise<IPlayer | null> {
     try {
-      if (!playerId) {
+      if (!playerId || !/^[0-9a-fA-F]{24}$/.test(playerId)) {
         throw new Error('Player ID is required')
       }
 
@@ -167,7 +170,7 @@ export class YouthService {
 
   async trainYouthPlayer(playerId: string, trainingType: string, duration: number): Promise<IPlayer | null> {
     try {
-      if (!playerId) {
+      if (!playerId || !/^[0-9a-fA-F]{24}$/.test(playerId)) {
         throw new Error('Player ID is required')
       }
       if (!trainingType) {
@@ -188,8 +191,8 @@ export class YouthService {
         throw new Error('Player is not a youth player')
       }
 
-      const growthAmount = this['calculateYouthGrowth'](player, duration, trainingType)
-      this['applyGrowth'](player, growthAmount, trainingType)
+      const growthAmount = this.calculateYouthGrowth(player, duration, trainingType)
+      this.applyGrowth(player, growthAmount, trainingType)
 
       await player.save()
       return player
@@ -249,7 +252,7 @@ export class YouthService {
   }
 
   private applyGrowth(player: IPlayer, growthAmount: number, trainingType: string): void {
-    const trainingAttributes = this['getTrainingAttributes'](trainingType)
+    const trainingAttributes = this.getTrainingAttributes(trainingType)
 
     trainingAttributes.forEach(attr => {
       const currentValue = player.attributes[attr as keyof typeof player.attributes] || 50
@@ -281,10 +284,16 @@ export class YouthService {
   }
 }
 
+interface IYouthFacilityUpgrade {
+  date: Date
+  fromLevel: number
+  toLevel: number
+}
+
 interface IYouthFacility {
   _id: string
   clubId: string
   level: number
   lastGenerationDate: Date
-  upgradeHistory: any[]
+  upgradeHistory: IYouthFacilityUpgrade[]
 }

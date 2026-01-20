@@ -321,5 +321,19 @@ describe('YouthService', () => {
 
       await expect(youthService.retireOldPlayers()).rejects.toThrow('Failed to retire players')
     })
+
+    it('should return empty array when no old players exist', async () => {
+      Player.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([])
+      } as any)
+
+      const result = await youthService.retireOldPlayers()
+
+      expect(result).toEqual([])
+      expect(Player.find).toHaveBeenCalledWith({
+        age: { $gte: PLAYER_AGE_GROUPS.RETIREMENT.min },
+        isYouth: false
+      })
+    })
   })
 })
