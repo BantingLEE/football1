@@ -105,12 +105,12 @@ describe('API Version Middleware', () => {
     it('should include compatibility matrix for 1.0.0', () => {
       const versionInfo = getVersionInfo()
 
-      expect(versionInfo.compatibilityMatrix).toHaveProperty('1.0.0')
-      expect(versionInfo.compatibilityMatrix['1.0.0']).toHaveProperty('stable', true)
-      expect(versionInfo.compatibilityMatrix['1.0.0']).toHaveProperty('introduced')
-      expect(versionInfo.compatibilityMatrix['1.0.0']).toHaveProperty('deprecation', null)
-      expect(versionInfo.compatibilityMatrix['1.0.0']).toHaveProperty('sunset', null)
-      expect(versionInfo.compatibilityMatrix['1.0.0']).toHaveProperty('features')
+      expect(versionInfo.compatibilityMatrix['1.0.0']).toBeDefined()
+      expect(versionInfo.compatibilityMatrix['1.0.0'].stable).toBe(true)
+      expect(versionInfo.compatibilityMatrix['1.0.0'].introduced).toBeDefined()
+      expect(versionInfo.compatibilityMatrix['1.0.0'].deprecation).toBeNull()
+      expect(versionInfo.compatibilityMatrix['1.0.0'].sunset).toBeNull()
+      expect(versionInfo.compatibilityMatrix['1.0.0'].features).toBeDefined()
     })
 
     it('should include feature list in compatibility matrix', () => {

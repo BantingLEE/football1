@@ -59,7 +59,7 @@ paths:
       description: Check if the API Gateway is running
       operationId: healthCheck
       responses:
-        '200':
+        "200":
           description: API is healthy
           content:
             application/json:
@@ -87,7 +87,7 @@ paths:
       description: Returns current API version, supported versions, and compatibility matrix
       operationId: getVersionInfo
       responses:
-        '200':
+        "200":
           description: Version information
           content:
             application/json:
@@ -101,7 +101,7 @@ paths:
                     type: array
                     items:
                       type: string
-                    example: ['1.0.0']
+                    example: ["1.0.0"]
                   deprecatedVersions:
                     type: array
                     items:
@@ -158,7 +158,7 @@ paths:
             enum: [asc, desc]
             default: asc
       responses:
-        '200':
+        "200":
           description: List of clubs
           content:
             application/json:
@@ -168,13 +168,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Club'
+                      $ref: "#/components/schemas/Club"
                   pagination:
-                    $ref: '#/components/schemas/Pagination'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
     post:
       tags:
         - Clubs
@@ -187,7 +187,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateClubRequest'
+              $ref: "#/components/schemas/CreateClubRequest"
             examples:
               basic:
                 summary: Basic club creation
@@ -219,18 +219,18 @@ paths:
                     attacking: 75
                     defending: 65
       responses:
-        '201':
+        "201":
           description: Club created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Club'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
+                $ref: "#/components/schemas/Club"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /clubs/{id}:
     get:
@@ -241,20 +241,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ClubId'
+        - $ref: "#/components/parameters/ClubId"
       responses:
-        '200':
+        "200":
           description: Club details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Club'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/Club"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     patch:
       tags:
         - Clubs
@@ -263,26 +263,26 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ClubId'
+        - $ref: "#/components/parameters/ClubId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateClubRequest'
+              $ref: "#/components/schemas/UpdateClubRequest"
       responses:
-        '200':
+        "200":
           description: Club updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Club'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/Club"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       tags:
         - Clubs
@@ -291,16 +291,16 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ClubId'
+        - $ref: "#/components/parameters/ClubId"
       responses:
-        '204':
+        "204":
           description: Club deleted successfully
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /clubs/{id}/finances:
     patch:
@@ -311,26 +311,26 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ClubId'
+        - $ref: "#/components/parameters/ClubId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateFinancesRequest'
+              $ref: "#/components/schemas/UpdateFinancesRequest"
       responses:
-        '200':
+        "200":
           description: Finances updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Club'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/Club"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /players:
     get:
@@ -341,10 +341,10 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/Pagination'
-        - $ref: '#/components/parameters/Sort'
+        - $ref: "#/components/parameters/Pagination"
+        - $ref: "#/components/parameters/Sort"
       responses:
-        '200':
+        "200":
           description: List of players
           content:
             application/json:
@@ -354,13 +354,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Player'
+                      $ref: "#/components/schemas/Player"
                   pagination:
-                    $ref: '#/components/schemas/Pagination'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /matches:
     get:
@@ -371,10 +371,10 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/Pagination'
-        - $ref: '#/components/parameters/Sort'
+        - $ref: "#/components/parameters/Pagination"
+        - $ref: "#/components/parameters/Sort"
       responses:
-        '200':
+        "200":
           description: List of matches
           content:
             application/json:
@@ -384,13 +384,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Match'
+                      $ref: "#/components/schemas/Match"
                   pagination:
-                    $ref: '#/components/schemas/Pagination'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /economy:
     get:
@@ -401,7 +401,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Economy information
           content:
             application/json:
@@ -414,8 +414,8 @@ paths:
                     type: number
                   transfers:
                     type: array
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /leagues:
     get:
@@ -426,16 +426,16 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of leagues
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/League'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                  $ref: "#/components/schemas/League"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /youth:
     get:
@@ -446,7 +446,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Youth academy information
           content:
             application/json:
@@ -456,11 +456,11 @@ paths:
                   players:
                     type: array
                     items:
-                      $ref: '#/components/schemas/YouthPlayer'
+                      $ref: "#/components/schemas/YouthPlayer"
                   facility:
-                    $ref: '#/components/schemas/YouthFacility'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                    $ref: "#/components/schemas/YouthFacility"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /messages:
     get:
@@ -471,16 +471,16 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of messages
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Message'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                  $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /notifications:
     get:
@@ -491,16 +491,16 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of notifications
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Notification'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                  $ref: "#/components/schemas/Notification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   securitySchemes:
@@ -518,7 +518,7 @@ components:
       description: MongoDB ObjectID of the club
       schema:
         type: string
-        pattern: '^[0-9a-fA-F]{24}$'
+        pattern: "^[0-9a-fA-F]{24}$"
       example: 507f1f77bcf86cd799439011
 
     Pagination:
@@ -594,7 +594,7 @@ components:
       properties:
         formation:
           type: string
-          enum: ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '5-3-2', '3-4-3']
+          enum: ["4-4-2", "4-3-3", "3-5-2", "4-2-3-1", "5-3-2", "3-4-3"]
           example: 4-3-3
         attacking:
           type: integer
@@ -629,13 +629,13 @@ components:
           maxLength: 100
           example: Manchester
         stadium:
-          $ref: '#/components/schemas/Stadium'
+          $ref: "#/components/schemas/Stadium"
         finances:
-          $ref: '#/components/schemas/Finances'
+          $ref: "#/components/schemas/Finances"
         youthFacility:
-          $ref: '#/components/schemas/YouthFacility'
+          $ref: "#/components/schemas/YouthFacility"
         tacticalPreference:
-          $ref: '#/components/schemas/TacticalPreference'
+          $ref: "#/components/schemas/TacticalPreference"
         createdAt:
           type: string
           format: date-time
@@ -667,13 +667,13 @@ components:
           maxLength: 100
           example: Manchester
         stadium:
-          $ref: '#/components/schemas/Stadium'
+          $ref: "#/components/schemas/Stadium"
         finances:
-          $ref: '#/components/schemas/Finances'
+          $ref: "#/components/schemas/Finances"
         youthFacility:
-          $ref: '#/components/schemas/YouthFacility'
+          $ref: "#/components/schemas/YouthFacility"
         tacticalPreference:
-          $ref: '#/components/schemas/TacticalPreference'
+          $ref: "#/components/schemas/TacticalPreference"
 
     UpdateClubRequest:
       type: object
@@ -692,13 +692,13 @@ components:
           minLength: 2
           maxLength: 100
         stadium:
-          $ref: '#/components/schemas/Stadium'
+          $ref: "#/components/schemas/Stadium"
         finances:
-          $ref: '#/components/schemas/Finances'
+          $ref: "#/components/schemas/Finances"
         youthFacility:
-          $ref: '#/components/schemas/YouthFacility'
+          $ref: "#/components/schemas/YouthFacility"
         tacticalPreference:
-          $ref: '#/components/schemas/TacticalPreference'
+          $ref: "#/components/schemas/TacticalPreference"
 
     UpdateFinancesRequest:
       type: object
@@ -876,7 +876,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           examples:
             invalidBody:
               summary: Invalid request body
@@ -884,9 +884,9 @@ components:
                 error: Validation failed
                 details:
                   - field: name
-                    message: 'name is required'
+                    message: "name is required"
                   - field: foundedYear
-                    message: 'foundedYear must be greater than or equal to 1800'
+                    message: "foundedYear must be greater than or equal to 1800"
 
     Unauthorized:
       description: Unauthorized access
