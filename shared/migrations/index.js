@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MigrationRecord = exports.MigrationRunner = exports.runner = void 0;
+const runner_1 = require("./runner");
+const _001_add_club_indexes_1 = require("./001_add_club_indexes");
+const _002_add_player_indexes_1 = require("./002_add_player_indexes");
+const _003_add_match_indexes_1 = require("./003_add_match_indexes");
+const _004_add_youth_facility_indexes_1 = require("./004_add_youth_facility_indexes");
+const runner = new runner_1.MigrationRunner();
+exports.runner = runner;
+runner.register(_001_add_club_indexes_1.migration001AddClubIndexes);
+runner.register(_002_add_player_indexes_1.migration002AddPlayerIndexes);
+runner.register(_003_add_match_indexes_1.migration003AddMatchIndexes);
+runner.register(_004_add_youth_facility_indexes_1.migration004AddYouthFacilityIndexes);
+var runner_2 = require("./runner");
+Object.defineProperty(exports, "MigrationRunner", { enumerable: true, get: function () { return runner_2.MigrationRunner; } });
+var runner_3 = require("./runner");
+Object.defineProperty(exports, "MigrationRecord", { enumerable: true, get: function () { return runner_3.MigrationRecord; } });
