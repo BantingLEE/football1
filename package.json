@@ -2,29 +2,20 @@
   "name": "football-manager",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "services/api-gateway",
-    "services/club-service",
-    "services/player-service",
-    "services/match-service",
-    "services/economy-service",
-    "services/youth-service",
-    "services/league-service",
-    "services/message-service",
-    "services/notification-service",
-    "shared"
-  ],
+
   "scripts": {
     "dev": "docker-compose up",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "docker-compose build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:frontend:static": "cd frontend && OUTPUT_MODE=export npm run build",
     "lint": "prettier --check \"**/*.{ts,tsx,json}\"",
     "format": "prettier --write \"**/*.{ts,tsx,json}\"",
     "test:e2e": "cd e2e && npm run test",
     "test:e2e:headed": "cd e2e && npm run test:headed",
     "test:e2e:ui": "cd e2e && npm run test:ui",
-    "test:api:e2e": "cd e2e && npm run test:api"
+    "test:api:e2e": "cd e2e && npm run test:api",
+    "deploy:edgeone": "cd frontend && npm run build && echo '请查看 docs/EDGEONE_DEPLOYMENT.md 完成部署'"
   },
   "devDependencies": {
     "prettier": "^3.1.0"
