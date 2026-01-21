@@ -5,6 +5,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "out",
   "installCommand": "npm install",
+  "workingDirectory": "frontend",
   "env": {
     "OUTPUT_MODE": "export",
     "NODE_ENV": "production"
@@ -24,15 +25,6 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
-        }
-      ]
-    },
-    {
-      "source": "/static/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
