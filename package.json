@@ -4,7 +4,15 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "services/*",
+    "services/api-gateway",
+    "services/club-service",
+    "services/player-service",
+    "services/match-service",
+    "services/economy-service",
+    "services/youth-service",
+    "services/league-service",
+    "services/message-service",
+    "services/notification-service",
     "shared"
   ],
   "scripts": {
